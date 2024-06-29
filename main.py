@@ -16,7 +16,7 @@ def compressed_time() -> str:
     return (datetime.now().isoformat().replace(":", "").replace("-", "").replace("T", "").partition("."))[0]
 
 
-def stream() -> Generator:
+def create_chat_stream(model: str) -> Generator:
     client = OpenAI(
         organization=ORG,
         project=PROJECT_ID,
@@ -43,7 +43,7 @@ def stream() -> Generator:
 
         messages.append({"role": "user", "content": query})
         completions = client.chat.completions.create(
-            model="gpt-4-turbo",
+            model=model,
             messages=messages,  # type: ignore
             stream=True,
         )
@@ -67,15 +67,15 @@ def stream() -> Generator:
         messages.append({"role": "assistant", "content": response})
 
 
-def run_interactive_stream(report_filename: str, transcript_filename: Optional[str]) -> None:
-    coroutine = stream()
+def run_interactive_stream(report_filename: str, transcript_filename: Optional[str], model: str) -> None:
+    coroutine = create_chat_stream(model)
     next(coroutine)
     transcript = []
+    input_delim = ""
     while True:
         query = None
-        input_delim = ""
         try:
-            query = input("{input_delim}> ")
+            query = input(f"{input_delim}> ")
             input_delim = "\n"
         except EOFError:
             break
@@ -120,13 +120,14 @@ def run_interactive_stream(report_filename: str, transcript_filename: Optional[s
             delim = ""
             for qa in transcript:
                 f.write(f"{delim}## user >>\n\n{qa['query']}\n\n")
-                f.write(f"## ai >>\n\n{qa['reply']}")
+                f.write(f"## {model} >>\n\n{qa['reply']}")
                 delim = "\n\n"
             f.write("\n")
+        print(f"\rWrote transcript to '{transcript_filename}'. Goodbye.")
 
 
-def stream_spans_from_one_query(query: str) -> Iterator[str]:
-    coroutine = stream()
+def stream_spans_from_one_query(query: str, model: str) -> Iterator[str]:
+    coroutine = create_chat_stream(model)
     next(coroutine)
 
     # Send messages to the coroutine
@@ -135,10 +136,10 @@ def stream_spans_from_one_query(query: str) -> Iterator[str]:
         yield span
 
 
-def run_single_query_stream(query: str, report_filename: str, transcript_filename: str) -> None:
+def run_single_query_stream(query: str, report_filename: str, transcript_filename: str, model: str) -> None:
     try:
         content = ""
-        for span in stream_spans_from_one_query(query):
+        for span in stream_spans_from_one_query(query, model):
             content += span
             print(span, end="")
         print()
@@ -172,6 +173,13 @@ def main() -> None:
     parser = argparse.ArgumentParser("ai")
     parser.add_argument("query", nargs="?", default=None)
     parser.add_argument(
+        "-m",
+        "--model",
+        required=False,
+        default="gpt-4o",
+        help="Which model to use",
+    )
+    parser.add_argument(
         "-f",
         "--filename",
         required=False,
@@ -190,9 +198,9 @@ def main() -> None:
     report_filename = args.report_filename or f"ai-{slug}.json"
 
     if args.query is None:
-        run_interactive_stream(report_filename, args.filename)
+        run_interactive_stream(report_filename, args.filename, args.model)
     else:
-        run_single_query_stream(args.query, report_filename, args.filename)
+        run_single_query_stream(args.query, report_filename, args.filename, args.model)
 
 
 if __name__ == "__main__":
