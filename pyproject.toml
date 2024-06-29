@@ -1,0 +1,7 @@
+[tool.ruff]
+line-length = 110
+
+[tool.autoimport.common_statements]
+"np" = "import numpy as np"
+"pd" = "import pandas as pd"
+"pprint" = "from pprint import pprint"
