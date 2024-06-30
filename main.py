@@ -68,6 +68,18 @@ def create_chat_stream(model: str) -> Generator:
         span_generator = response_span_generator()
 
 
+def set_tty_color(r: int, g: int, b: int) -> None:
+    print(f"\001\033[38;2;{r};{g};{b}m\002")
+
+
+def reset_tty() -> None:
+    print("\001\033[0m\002")
+
+
+def colorize(text: str, r: int, g: int, b: int) -> str:
+    return f"\001\033[38;2;{r};{g};{b}m\002{text}\001\033[0m\002"
+
+
 def run_interactive_stream(report_filename: str, transcript_filename: Optional[str], model: str) -> None:
     coroutine = create_chat_stream(model)
     next(coroutine)
@@ -82,19 +94,16 @@ def run_interactive_stream(report_filename: str, transcript_filename: Optional[s
             break
         qa = {"query": query, "query_timestamp": time.time()}
 
-        # Send messages to the coroutine
+        # Send m138519essages to the coroutine
         full_reply = ""
         spans = coroutine.send(query)
         try:
-            r = 200
-            g = 150
-            b = 100
-            print(f"\001\033[38;2;{r};{g};{b}m\002")
+            set_tty_color(r=200, g=150, b=100)
             for span in spans:
                 full_reply += span
                 print(span, end="")
         finally:
-            print("\001\033[0m\002")
+            reset_tty()
         qa["reply"] = full_reply
         qa["reply_timestamp"] = time.time()
         transcript.append(qa)
@@ -124,7 +133,7 @@ def run_interactive_stream(report_filename: str, transcript_filename: Optional[s
                 f.write(f"## {model} >>\n\n{qa['reply']}")
                 delim = "\n\n"
             f.write("\n")
-        print(f"\rWrote transcript to '{transcript_filename}'. Goodbye.")
+        print(f"\rWrote transcript to '{colorize(transcript_filename, r=100, g=185, b=125)}'. Goodbye.")
 
 
 def stream_spans_from_one_query(query: str, model: str) -> Iterator[str]:
