@@ -33,6 +33,7 @@ def create_chat_stream(model: str) -> Generator:
     ]
     i = 0
     span_generator = None
+    response = None
     while True:
         query = yield span_generator
         if not query:
@@ -41,6 +42,8 @@ def create_chat_stream(model: str) -> Generator:
             i += 1
             continue
 
+        if response:
+            messages.append({"role": "assistant", "content": response})
         messages.append({"role": "user", "content": query})
         completions = client.chat.completions.create(
             model=model,
@@ -63,8 +66,6 @@ def create_chat_stream(model: str) -> Generator:
                 response += delta
 
         span_generator = response_span_generator()
-
-        messages.append({"role": "assistant", "content": response})
 
 
 def run_interactive_stream(report_filename: str, transcript_filename: Optional[str], model: str) -> None:
