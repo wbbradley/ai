@@ -1,3 +1,18 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai"
+version = "0.1.0"
+dependencies = [
+    "openai",
+    "pydantic",
+]
+
+[project.scripts]
+ai = "ai.cli:main"
+
 [tool.ruff]
 line-length = 110
 
@@ -5,3 +20,5 @@ line-length = 110
 "np" = "import numpy as np"
 "pd" = "import pandas as pd"
 "pprint" = "from pprint import pprint"
+"dataclass" = "from dataclasses import dataclass"
+

@@ -1,26 +1,21 @@
-import argparse
 import json
 import logging
-import os
 import time
 from datetime import datetime
-from typing import Generator, Iterator, Optional
+from pathlib import Path
+from typing import Generator, Iterator, Optional, Union
 
 from openai import OpenAI
 
-PROJECT_ID = os.environ["OPENAI_API_PROJECT_ID"]
-ORG = os.environ["OPENAI_API_ORG"]
+from ai.config import Config
 
 
 def compressed_time() -> str:
     return (datetime.now().isoformat().replace(":", "").replace("-", "").replace("T", "").partition("."))[0]
 
 
-def create_chat_stream(model: str) -> Generator:
-    client = OpenAI(
-        organization=ORG,
-        project=PROJECT_ID,
-    )
+def create_chat_stream(config: Config, model: str) -> Generator:
+    client = OpenAI()
     messages = [
         {
             "role": "system",
@@ -80,8 +75,13 @@ def colorize(text: str, r: int, g: int, b: int) -> str:
     return f"\001\033[38;2;{r};{g};{b}m\002{text}\001\033[0m\002"
 
 
-def run_interactive_stream(report_filename: str, transcript_filename: Optional[str], model: str) -> None:
-    coroutine = create_chat_stream(model)
+def run_interactive_stream(
+    config: Config,
+    report_filename: str,
+    transcript_filename: Optional[Union[Path, str]],
+    model: str,
+) -> None:
+    coroutine = create_chat_stream(config, model)
     next(coroutine)
     transcript = []
     input_delim = ""
@@ -94,7 +94,7 @@ def run_interactive_stream(report_filename: str, transcript_filename: Optional[s
             break
         qa = {"query": query, "query_timestamp": time.time()}
 
-        # Send m138519essages to the coroutine
+        # Send messages to the coroutine
         full_reply = ""
         spans = coroutine.send(query)
         try:
@@ -125,7 +125,7 @@ def run_interactive_stream(report_filename: str, transcript_filename: Optional[s
                     "topic-of-discussion". Keep your response limited to alphanumerics and dashes."""
                 )
             )
-            transcript_filename = f"{slug}.md"
+            transcript_filename = Path(config.transcript_dir) / f"{slug}.md"
         with open(transcript_filename, "w") as f:
             delim = ""
             for qa in transcript:
@@ -136,8 +136,8 @@ def run_interactive_stream(report_filename: str, transcript_filename: Optional[s
         print(f"\rWrote transcript to '{colorize(transcript_filename, r=100, g=185, b=125)}'. Goodbye.")
 
 
-def stream_spans_from_one_query(query: str, model: str) -> Iterator[str]:
-    coroutine = create_chat_stream(model)
+def stream_spans_from_one_query(config: Config, query: str, model: str) -> Iterator[str]:
+    coroutine = create_chat_stream(config, model)
     next(coroutine)
 
     # Send messages to the coroutine
@@ -146,10 +146,12 @@ def stream_spans_from_one_query(query: str, model: str) -> Iterator[str]:
         yield span
 
 
-def run_single_query_stream(query: str, report_filename: str, transcript_filename: str, model: str) -> None:
+def run_single_query_stream(
+    config: Config, query: str, report_filename: str, transcript_filename: str, model: str
+) -> None:
     try:
         content = ""
-        for span in stream_spans_from_one_query(query, model):
+        for span in stream_spans_from_one_query(config, query, model):
             content += span
             print(span, end="")
         print()
@@ -177,41 +179,3 @@ def run_single_query_stream(query: str, report_filename: str, transcript_filenam
         with open(transcript_filename, "w") as f:
             f.write(content)
             f.write("\n")
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser("ai")
-    parser.add_argument("query", nargs="?", default=None)
-    parser.add_argument(
-        "-m",
-        "--model",
-        required=False,
-        default="gpt-4o",
-        help="Which model to use",
-    )
-    parser.add_argument(
-        "-f",
-        "--filename",
-        required=False,
-        default=None,
-        help="Where to write the raw generated content",
-    )
-    parser.add_argument(
-        "-r",
-        "--report-filename",
-        required=False,
-        default=None,
-        help="Where to write the report of the entire run.",
-    )
-    args = parser.parse_args()
-    slug = str(compressed_time())
-    report_filename = args.report_filename or f"ai-{slug}.json"
-
-    if args.query is None:
-        run_interactive_stream(report_filename, args.filename, args.model)
-    else:
-        run_single_query_stream(args.query, report_filename, args.filename, args.model)
-
-
-if __name__ == "__main__":
-    main()
