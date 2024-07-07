@@ -1,8 +1,8 @@
 import re
-from typing import Generator, Iterator, List, cast
+from typing import Generator, Iterator, List, cast, reveal_type
 
 import anthropic
-from anthropic.types import Message, MessageParam
+from anthropic.types import MessageParam
 
 from ai.config import Config
 
@@ -25,12 +25,14 @@ def create_anthropic_chat_stream(config: Config) -> Generator[str, str, None]:
             continue
 
         if response:
-            messages.append(Message(role="assistant", content=response))
-        messages.append(Message(role="user", content=query))
+            messages.append(MessageParam(role="assistant", content=response))
+        messages.append(MessageParam(role="user", content=query))
         response = ""
 
         def response_span_generator() -> Iterator[str]:
             nonlocal response
+            reveal_type(client.messages.stream)
+
             with client.messages.stream(
                 model=model,
                 max_tokens=1024,
@@ -38,20 +40,14 @@ def create_anthropic_chat_stream(config: Config) -> Generator[str, str, None]:
                     r"\s+",
                     " ",
                     """
-You respond directly and to the point. Never inform me that you are an AI, directly or
-indirectly.
-                """,
+    You respond directly and to the point. Never inform me that you are an AI, directly or
+    indirectly.
+                    """,
                 ),
                 messages=messages,
             ) as stream:
-                for chunk in stream:
-                    delta = chunk.choices[0].delta.content
-                    if delta is None:
-                        break
-                    yield delta
-                    if chunk.choices[0].finish_reason == "stop":
-                        assert chunk.choices[0].delta.content is None
-                        break
-                    response += delta
+                for chunk in stream.text_stream:
+                    yield chunk
+                    response += chunk
 
         span_generator = response_span_generator()

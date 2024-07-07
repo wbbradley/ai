@@ -36,7 +36,10 @@ class HasAPIKey(BaseModel):
     def model_post_init(self, __context: Any) -> None:
         if self.api_key_cmd is not None:
             try:
+                print(f"\rrunning api_key_cmd '{self.api_key_cmd}'...", end="")
                 self.api_key = subprocess.check_output(self.api_key_cmd, shell=True).strip().decode("utf-8")
+                # Erase line.
+                print("\r\33[2K\r", end="")
             except subprocess.CalledProcessError as e:
                 raise InvalidConfigurationError("openai.api_key_cmd returned an error.") from e
             self.api_key_cmd = None
