@@ -1,5 +1,5 @@
 import re
-from typing import Generator, Iterator, List, cast, reveal_type
+from typing import Generator, Iterator, List, cast
 
 import anthropic
 from anthropic.types import MessageParam
@@ -31,8 +31,6 @@ def create_anthropic_chat_stream(config: Config) -> Generator[str, str, None]:
 
         def response_span_generator() -> Iterator[str]:
             nonlocal response
-            reveal_type(client.messages.stream)
-
             with client.messages.stream(
                 model=model,
                 max_tokens=1024,

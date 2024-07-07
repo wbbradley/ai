@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Generator, Iterator, Optional, Union
 
+from ai.colors import colorize, reset_tty, set_tty_color
 from ai.config import Config
 from ai.providers.anthropic import create_anthropic_chat_stream
 from ai.providers.openai import create_openai_chat_stream
@@ -30,18 +31,6 @@ def create_chat_stream(config: Config, provider: str) -> Generator[Iterator[str]
     raise UnknownProviderError(provider)
 
 
-def set_tty_color(r: int, g: int, b: int) -> None:
-    print("\001\033[38;2;{};{};{}m\002".format(r, g, b))
-
-
-def reset_tty() -> None:
-    print("\001\033[0m\002")
-
-
-def colorize(text: str, r: int, g: int, b: int) -> str:
-    return f"\001\033[38;2;{r};{g};{b}m\002{text}\001\033[0m\002"
-
-
 def run_interactive_stream(
     config: Config,
     report_filename: str,
@@ -53,6 +42,7 @@ def run_interactive_stream(
     next(coroutine)
     transcript = []
     input_delim = ""
+    print(f"[ai] you are chatting with {colorize(provider)}'s {colorize(model)} model.")
     while True:
         query = None
         try:
