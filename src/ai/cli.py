@@ -1,6 +1,6 @@
 import argparse
 
-from ai.config import fetch_config
+from ai.config import Config, fetch_config
 from ai.streaming import compressed_time, run_interactive_stream, run_single_query_stream
 
 
@@ -36,9 +36,9 @@ def main() -> None:
     report_filename = args.report_filename or f"ai-{slug}.json"
 
     if args.query is None:
-        run_interactive_stream(config, report_filename, args.filename, args.model)
+        run_interactive_stream(config, report_filename, args.filename, args.provider)
     else:
-        run_single_query_stream(config, args.query, report_filename, args.filename, args.model)
+        run_single_query_stream(config, args.query, report_filename, args.filename, args.provider)
 
 
 if __name__ == "__main__":

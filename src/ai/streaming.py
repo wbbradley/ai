@@ -10,12 +10,28 @@ from openai import OpenAI
 from ai.config import Config
 
 
+class StreamingError(Exception):
+    """Streaming error."""
+
+
+class UnknownProviderError(StreamingError):
+    """Unknown Provider."""
+
+
 def compressed_time() -> str:
     return (datetime.now().isoformat().replace(":", "").replace("-", "").replace("T", "").partition("."))[0]
 
 
-def create_chat_stream(config: Config, model: str) -> Generator:
-    client = OpenAI()
+def create_chat_stream(config: Config, provider: str) -> Generator:
+    if provider == "openai":
+        return create_openai_chat_stream(config)
+    raise UnknownProviderError(provider)
+
+
+def create_openai_chat_stream(config: Config) -> Generator:
+    assert config.openai
+    model = config.openai.model
+    client = OpenAI(api_key=config.openai.api_key)
     messages = [
         {
             "role": "system",
@@ -64,7 +80,7 @@ def create_chat_stream(config: Config, model: str) -> Generator:
 
 
 def set_tty_color(r: int, g: int, b: int) -> None:
-    print(f"\001\033[38;2;{r};{g};{b}m\002")
+    print("\001\033[38;2;{};{};{}m\002".format(r, g, b))
 
 
 def reset_tty() -> None:
@@ -79,9 +95,10 @@ def run_interactive_stream(
     config: Config,
     report_filename: str,
     transcript_filename: Optional[Union[Path, str]],
-    model: str,
+    provider: str,
 ) -> None:
-    coroutine = create_chat_stream(config, model)
+    coroutine = create_chat_stream(config, provider)
+    model = config.get_provider_model(provider)
     next(coroutine)
     transcript = []
     input_delim = ""
@@ -133,11 +150,11 @@ def run_interactive_stream(
                 f.write(f"## {model} >>\n\n{qa['reply']}")
                 delim = "\n\n"
             f.write("\n")
-        print(f"\rWrote transcript to '{colorize(transcript_filename, r=100, g=185, b=125)}'. Goodbye.")
+        print(f"\rWrote transcript to '{colorize(str(transcript_filename), r=100, g=185, b=125)}'. Goodbye.")
 
 
-def stream_spans_from_one_query(config: Config, query: str, model: str) -> Iterator[str]:
-    coroutine = create_chat_stream(config, model)
+def stream_spans_from_one_query(config: Config, query: str, provider: str) -> Iterator[str]:
+    coroutine = create_chat_stream(config, provider)
     next(coroutine)
 
     # Send messages to the coroutine

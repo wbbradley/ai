@@ -4,7 +4,7 @@ import sys
 import tomllib
 from pathlib import Path
 from tomllib import TOMLDecodeError
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from pydantic import BaseModel
 
@@ -14,6 +14,10 @@ class AIConfigError(Exception):
 
 
 class InvalidConfigurationError(AIConfigError):
+    """General failure reading config."""
+
+
+class InvalidProviderModelError(AIConfigError):
     """General failure reading config."""
 
 
@@ -52,6 +56,12 @@ class Config(BaseModel):
     provider: str
     openai: Optional[OpenAIConfig] = None
     anthropic: Optional[AnthropicConfig] = None
+
+    def get_provider_model(self, provider: str) -> str:
+        provider_config = getattr(self, provider, None)
+        if not provider_config:
+            raise InvalidProviderModelError(provider)
+        return cast(str, getattr(provider_config, "model"))
 
     def model_post_init(self, __context: Any) -> None:
         os.makedirs(self.report_dir, exist_ok=True)
