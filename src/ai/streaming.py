@@ -5,9 +5,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Generator, Iterator, Optional, Union
 
-from openai import OpenAI
-
 from ai.config import Config
+from ai.providers.anthropic import create_anthropic_chat_stream
+from ai.providers.openai import create_openai_chat_stream
 
 
 class StreamingError(Exception):
@@ -22,61 +22,12 @@ def compressed_time() -> str:
     return (datetime.now().isoformat().replace(":", "").replace("-", "").replace("T", "").partition("."))[0]
 
 
-def create_chat_stream(config: Config, provider: str) -> Generator:
+def create_chat_stream(config: Config, provider: str) -> Generator[Iterator[str], str, None]:
     if provider == "openai":
         return create_openai_chat_stream(config)
+    if provider == "anthropic":
+        return create_anthropic_chat_stream(config)
     raise UnknownProviderError(provider)
-
-
-def create_openai_chat_stream(config: Config) -> Generator:
-    assert config.openai
-    model = config.openai.model
-    client = OpenAI(api_key=config.openai.api_key)
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                """
-                    You respond directly and to the point. Never inform me that you are an AI.
-                """.strip().replace("\n", " ")
-            ),
-        }
-    ]
-    i = 0
-    span_generator = None
-    response = None
-    while True:
-        query = yield span_generator
-        if not query:
-            if i > 10:
-                raise RuntimeError()
-            i += 1
-            continue
-
-        if response:
-            messages.append({"role": "assistant", "content": response})
-        messages.append({"role": "user", "content": query})
-        completions = client.chat.completions.create(
-            model=model,
-            messages=messages,  # type: ignore
-            stream=True,
-        )
-
-        response = ""
-
-        def response_span_generator() -> Iterator[str]:
-            nonlocal response
-            for chunk in completions:
-                delta = chunk.choices[0].delta.content  # type: ignore
-                if delta is None:
-                    break
-                yield delta
-                if chunk.choices[0].finish_reason == "stop":  # type: ignore
-                    assert chunk.choices[0].delta.content is None  # type: ignore
-                    break
-                response += delta
-
-        span_generator = response_span_generator()
 
 
 def set_tty_color(r: int, g: int, b: int) -> None:

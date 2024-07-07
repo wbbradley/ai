@@ -64,6 +64,10 @@ class Config(BaseModel):
         return cast(str, getattr(provider_config, "model"))
 
     def model_post_init(self, __context: Any) -> None:
+        # Allow for usage '~' in config
+        self.transcript_dir = os.path.expanduser(self.transcript_dir)
+        self.report_dir = os.path.expanduser(self.report_dir)
+        # Ensure the config directories exist.
         os.makedirs(self.report_dir, exist_ok=True)
         os.makedirs(self.transcript_dir, exist_ok=True)
 

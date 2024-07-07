@@ -1,6 +1,5 @@
 autoimport
 isort
-maison
 mypy
 openai
 ruff

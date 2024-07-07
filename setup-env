@@ -18,3 +18,4 @@ if ! [[ -x ".venv/bin/uv" ]]; then
 fi
 
 .venv/bin/python -muv pip install -r requirements.txt
+.venv/bin/uv pip install -e .
