@@ -5,7 +5,7 @@ from openai import OpenAI
 from ai.config import Config
 
 
-def create_openai_chat_stream(config: Config) -> Generator[str, str, None]:
+def create_openai_chat_stream(config: Config) -> Generator[Iterator[str], str, None]:
     assert config.openai
     model = config.openai.model
     client = OpenAI(api_key=config.openai.api_key)
@@ -24,7 +24,7 @@ def create_openai_chat_stream(config: Config) -> Generator[str, str, None]:
     span_generator = None
     response = None
     while True:
-        query = yield cast(str, span_generator)
+        query = yield cast(Iterator[str], span_generator)
         if not query:
             if i > 10:
                 raise RuntimeError()

@@ -7,7 +7,7 @@ from anthropic.types import MessageParam
 from ai.config import Config
 
 
-def create_anthropic_chat_stream(config: Config) -> Generator[str, str, None]:
+def create_anthropic_chat_stream(config: Config) -> Generator[Iterator[str], str, None]:
     assert config.anthropic
     model = config.anthropic.model
     client = anthropic.Anthropic(api_key=config.anthropic.api_key)
@@ -17,7 +17,7 @@ def create_anthropic_chat_stream(config: Config) -> Generator[str, str, None]:
     span_generator = None
     response = None
     while True:
-        query = yield cast(str, span_generator)
+        query = yield cast(Iterator[str], span_generator)
         if not query:
             if i > 10:
                 raise RuntimeError()

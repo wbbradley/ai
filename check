@@ -1,0 +1,13 @@
+#!/bin/bash
+die() {
+  echo "$0: $*" >&2
+  exit 1
+}
+
+cd "$(dirname "$0")" ||:
+
+. .venv/bin/activate
+
+ruff format --diff || die "ruff failed"
+ruff check || die "ruff failed"
+mypy . || die "mypy failed"
