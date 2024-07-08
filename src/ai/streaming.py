@@ -1,11 +1,14 @@
 import json
 import logging
+import os
+import subprocess
+import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Generator, Iterator, Optional, Union
 
-from ai.colors import colorize, reset_tty, set_tty_color
+from ai.colors import colored_output, colorize
 from ai.config import Config
 from ai.providers.anthropic import create_anthropic_chat_stream
 from ai.providers.openai import create_openai_chat_stream
@@ -31,6 +34,40 @@ def create_chat_stream(config: Config, provider: str) -> Generator[Iterator[str]
     raise UnknownProviderError(provider)
 
 
+def get_user_input_from_editor() -> Optional[str]:
+    try:
+        # Get the user's preferred editor
+        editor = os.environ.get("EDITOR", "nano")  # Default to nano if $EDITOR is not set
+
+        # Create a temporary file
+        with tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=True) as temp_file:
+            temp_filename = temp_file.name
+
+            # Open the editor for user input
+            try:
+                subprocess.run([editor, temp_filename], check=True)
+            except subprocess.CalledProcessError:
+                print("Error: Failed to open the editor.")
+                return None
+            except FileNotFoundError:
+                print(f"Error: Editor '{editor}' not found.")
+                return None
+
+            # Read the contents of the temporary file
+            try:
+                with open(temp_filename, "r") as file:
+                    content = file.read()
+            except IOError as e:
+                print(f"Error reading the temporary file: {e}")
+                return None
+
+            return content.strip()
+
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return None
+
+
 def run_interactive_stream(
     config: Config,
     report_filename: str,
@@ -50,18 +87,19 @@ def run_interactive_stream(
             input_delim = "\n"
         except EOFError:
             break
+        if query == "fc":
+            query = get_user_input_from_editor()
+            if not query:
+                continue
         qa = {"query": query, "query_timestamp": time.time()}
 
         # Send messages to the coroutine
         full_reply = ""
         spans = coroutine.send(query)
-        try:
-            set_tty_color(r=200, g=150, b=100)
+        with colored_output(r=200, g=150, b=100):
             for span in spans:
                 full_reply += span
                 print(span, end="")
-        finally:
-            reset_tty()
         qa["reply"] = full_reply
         qa["reply_timestamp"] = time.time()
         transcript.append(qa)

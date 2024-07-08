@@ -2,6 +2,15 @@ import colorsys
 import hashlib
 
 
+@contextmanager
+def colored_output(r: int, g: int, b: int):
+    try:
+        set_tty_color(r, g, b)
+        yield
+    finally:
+        reset_tty()
+
+
 def hash_to_color(input_string, saturation=0.8, value=0.8):
     # Generate a hash of the input string
     hash_object = hashlib.md5(input_string.encode())
