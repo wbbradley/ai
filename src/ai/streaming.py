@@ -91,6 +91,7 @@ def run_interactive_stream(
             query = get_user_input_from_editor()
             if not query:
                 continue
+            print(query)
         qa = {"query": query, "query_timestamp": time.time()}
 
         # Send messages to the coroutine
