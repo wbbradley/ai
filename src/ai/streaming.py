@@ -118,7 +118,7 @@ def run_interactive_stream(
     report_filename_path = Path(config.report_dir) / report_filename
     with open(report_filename_path, "w") as f:
         json.dump(report, f, indent=2)
-        print(f"\rWrote report to '{colorize(str(report_filename_path))}'. Goodbye.")
+        print(f"\rWrote report to '{colorize(str(report_filename_path))}'.")
     if len(transcript) >= 1:
         if not transcript_filename:
             slug = "".join(
