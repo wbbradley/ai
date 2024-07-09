@@ -107,13 +107,18 @@ def run_interactive_stream(
 
     report = {
         "status": "ok",
+        "system_prompt": config.system_prompt,
+        "provider": config.provider,
+        "model": config.get_provider_model(config.provider),
         "query": query,
         "interactive": True,
         "transcript": transcript,
         "timestamp": time.time(),
     }
-    with open(report_filename, "w") as f:
+    report_filename_path = Path(config.report_dir) / report_filename
+    with open(report_filename_path, "w") as f:
         json.dump(report, f, indent=2)
+        print(f"\rWrote report to '{colorize(str(report_filename_path))}'. Goodbye.")
     if len(transcript) >= 1:
         if not transcript_filename:
             slug = "".join(
@@ -130,7 +135,7 @@ def run_interactive_stream(
                 f.write(f"## {model} >>\n\n{qa['reply']}")
                 delim = "\n\n"
             f.write("\n")
-        print(f"\rWrote transcript to '{colorize(str(transcript_filename), r=100, g=185, b=125)}'. Goodbye.")
+        print(f"\rWrote transcript to '{colorize(str(transcript_filename))}'. Goodbye.")
 
 
 def stream_spans_from_one_query(config: Config, query: str, provider: str) -> Iterator[str]:

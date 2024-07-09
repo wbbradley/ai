@@ -1,4 +1,3 @@
-import re
 from typing import Generator, Iterator, List, cast
 
 import anthropic
@@ -33,15 +32,9 @@ def create_anthropic_chat_stream(config: Config) -> Generator[Iterator[str], str
             nonlocal response
             with client.messages.stream(
                 model=model,
-                max_tokens=1024,
-                system=re.sub(
-                    r"\s+",
-                    " ",
-                    """
-    You respond directly and to the point. Never inform me that you are an AI, directly or
-    indirectly.
-                    """,
-                ),
+                temperature=config.temperature,
+                max_tokens=config.max_tokens,
+                system=config.system_prompt.strip(),
                 messages=messages,
             ) as stream:
                 for chunk in stream.text_stream:

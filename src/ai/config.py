@@ -8,6 +8,8 @@ from typing import Any, Optional, cast
 
 from pydantic import BaseModel
 
+from ai.colors import erase_line
+
 
 class AIConfigError(Exception):
     """All config related errors."""
@@ -39,7 +41,7 @@ class HasAPIKey(BaseModel):
                 print(f"\rrunning api_key_cmd '{self.api_key_cmd}'...", end="")
                 self.api_key = subprocess.check_output(self.api_key_cmd, shell=True).strip().decode("utf-8")
                 # Erase line.
-                print("\r\33[2K\r", end="")
+                erase_line()
             except subprocess.CalledProcessError as e:
                 raise InvalidConfigurationError("openai.api_key_cmd returned an error.") from e
             self.api_key_cmd = None
@@ -56,7 +58,10 @@ class AnthropicConfig(HasAPIKey):
 class Config(BaseModel):
     transcript_dir: str
     report_dir: str
+    system_prompt: str = ""
     provider: str
+    temperature: float = 1.0
+    max_tokens: int = 1024
     openai: Optional[OpenAIConfig] = None
     anthropic: Optional[AnthropicConfig] = None
 

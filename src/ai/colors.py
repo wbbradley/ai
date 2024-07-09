@@ -52,3 +52,7 @@ def set_tty_color(r: int, g: int, b: int) -> None:
 
 def reset_tty() -> None:
     print("\001\033[0m\002")
+
+
+def erase_line() -> None:
+    print("\r\33[2K\r", end="")

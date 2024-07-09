@@ -9,17 +9,7 @@ def create_openai_chat_stream(config: Config) -> Generator[Iterator[str], str, N
     assert config.openai
     model = config.openai.model
     client = OpenAI(api_key=config.openai.api_key)
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                """
-                    You respond directly and to the point. Never inform me that you are an AI, directly or
-                    indirectly.
-                """.strip().replace("\n", " ")
-            ),
-        }
-    ]
+    messages = [{"role": "system", "content": config.system_prompt.strip()}]
     i = 0
     span_generator = None
     response = None
