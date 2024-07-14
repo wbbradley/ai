@@ -6,7 +6,7 @@ import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Generator, Iterator, Optional, Union
+from typing import Generator, Iterator, List, Optional, TypedDict
 
 from ai.colors import colored_output, colorize
 from ai.config import Config
@@ -68,12 +68,34 @@ def get_user_input_from_editor() -> Optional[str]:
         return None
 
 
+class SessionMetadata(TypedDict):
+    timestamp: float
+    user: str
+    hostname: str
+
+
+class Message(TypedDict):
+    role: str
+    content: str
+
+
+class Report(TypedDict):
+    sessions: List[SessionMetadata] = []
+    system_prompt: str
+    provider: str
+    model: str
+    transcript: List[Message]
+
+
 def run_interactive_stream(
     config: Config,
-    report_filename: str,
-    transcript_filename: Optional[Union[Path, str]],
+    chat_filename: Optional[str],
     provider: str,
 ) -> None:
+    if chat_filename and Path(chat_filename).exists():
+        report = Report(json.load(open(chat_filename, "r")))
+    else:
+        report = Report()
     coroutine = create_chat_stream(config, provider)
     model = config.get_provider_model(provider)
     next(coroutine)
@@ -106,14 +128,17 @@ def run_interactive_stream(
         transcript.append(qa)
 
     report = {
-        "status": "ok",
+        "sessions": [
+            {
+                "timestamp": time.time(),
+            }
+        ],
         "system_prompt": config.system_prompt,
         "provider": config.provider,
         "model": config.get_provider_model(config.provider),
         "query": query,
         "interactive": True,
         "transcript": transcript,
-        "timestamp": time.time(),
     }
     report_filename_path = Path(config.report_dir) / report_filename
     with open(report_filename_path, "w") as f:

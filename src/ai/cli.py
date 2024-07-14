@@ -1,7 +1,7 @@
 import argparse
 
 from ai.config import Config, fetch_config
-from ai.streaming import compressed_time, run_interactive_stream, run_single_query_stream
+from ai.streaming import run_interactive_stream
 
 
 def parse_args(config: Config) -> argparse.Namespace:
@@ -15,30 +15,20 @@ def parse_args(config: Config) -> argparse.Namespace:
         "--filename",
         required=False,
         default=None,
-        help="Where to write the raw generated content",
-    )
-    parser.add_argument(
-        "-r",
-        "--report-filename",
-        required=False,
-        default=None,
-        help="Where to write the report of the entire run.",
+        help="Open a previously existing chat or preemptively choose the name of the new chat. Must be a .json file.",
     )
     args = parser.parse_args()
+    if args.filename is not None and not args.filename.endswith(".json"):
+        raise RuntimeError("filename must end with .json")
     return args
 
 
 def main() -> None:
     config = fetch_config()
     args = parse_args(config)
-    slug = str(compressed_time())
 
-    report_filename = args.report_filename or f"ai-{slug}.json"
-
-    if args.query is None:
-        run_interactive_stream(config, report_filename, args.filename, args.provider)
-    else:
-        run_single_query_stream(config, args.query, report_filename, args.filename, args.provider)
+    if args.filename is None:
+        run_interactive_stream(config, args.filename, args.provider)
 
 
 if __name__ == "__main__":
