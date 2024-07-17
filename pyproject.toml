@@ -23,3 +23,5 @@ line-length = 110
 "pprint" = "from pprint import pprint"
 "dataclass" = "from dataclasses import dataclass"
 
+[tool.autoimport]
+disable_move_to_top = true

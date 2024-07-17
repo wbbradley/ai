@@ -1,44 +1,31 @@
-from typing import Generator, Iterator, List, cast
+from typing import Iterator, List, cast
 
-import anthropic
+from anthropic import Anthropic
 from anthropic.types import MessageParam
 
 from ai.config import Config
+from ai.document import Document, DocumentStream
 
 
-def create_anthropic_chat_stream(config: Config) -> Generator[Iterator[str], str, None]:
-    assert config.anthropic
-    model = config.anthropic.model
-    client = anthropic.Anthropic(api_key=config.anthropic.api_key)
+class AnthropicChatStream(ChatStream):
+    client: Anthropic
 
-    messages: List[MessageParam] = []
-    i = 0
-    span_generator = None
-    response = None
-    while True:
-        query = yield cast(Iterator[str], span_generator)
-        if not query:
-            if i > 10:
-                raise RuntimeError()
-            i += 1
-            continue
+    def __init__(self, config: Config) -> None:
+        assert config.anthropic
+        self.client = Anthropic(api_key=config.anthropic.api_key)
 
-        if response:
-            messages.append(MessageParam(role="assistant", content=response))
-        messages.append(MessageParam(role="user", content=query))
-        response = ""
-
-        def response_span_generator() -> Iterator[str]:
-            nonlocal response
-            with client.messages.stream(
-                model=model,
-                temperature=config.temperature,
-                max_tokens=config.max_tokens,
-                system=config.system_prompt.strip(),
-                messages=messages,
-            ) as stream:
-                for chunk in stream.text_stream:
-                    yield chunk
-                    response += chunk
-
-        span_generator = response_span_generator()
+    def chat_stream(
+        self,
+        model: str,
+        messages: List[Message],
+        temperature: float,
+        max_tokens: int,
+        system_prompt: str,
+    ) -> ContextManager[Iterator[str]]: ...
+        with client.messages.stream(
+            model=model,
+            temperature=config.temperature,
+            max_tokens=config.max_tokens,
+            system=config.system_prompt.strip(),
+            messages=messages,
+        ) as stream:

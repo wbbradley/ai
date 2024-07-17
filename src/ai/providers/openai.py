@@ -1,39 +1,39 @@
-from typing import Generator, Iterator, cast
+from contextlib import contextmanager
+from typing import ContextManager, Iterator, List, cast
 
 from openai import OpenAI
 
+from ai.chat_stream import ChatStream
 from ai.config import Config
+from ai.document import Message
+from ai.providers import MissingProviderConfig
 
 
-def create_openai_chat_stream(config: Config) -> Generator[Iterator[str], str, None]:
-    assert config.openai
-    model = config.openai.model
-    client = OpenAI(api_key=config.openai.api_key)
-    messages = [{"role": "system", "content": config.system_prompt.strip()}]
-    i = 0
-    span_generator = None
-    response = None
-    while True:
-        query = yield cast(Iterator[str], span_generator)
-        if not query:
-            if i > 10:
-                raise RuntimeError()
-            i += 1
-            continue
+class OpenAIChatStream(ChatStream):
+    client: OpenAI
 
-        if response:
-            messages.append({"role": "assistant", "content": response})
-        messages.append({"role": "user", "content": query})
-        completions = client.chat.completions.create(
-            model=model,
-            messages=messages,  # type: ignore
-            stream=True,
-        )
+    def __init__(self, config: Config) -> None:
+        if not config.openai:
+            raise MissingProviderConfig("openai configuration is missing")
+        self.client = OpenAI(api_key=config.openai.api_key)
 
-        response = ""
+    def chat_stream(
+        self,
+        model: str,
+        messages: List[Message],
+        temperature: float,
+        max_tokens: int,
+        system_prompt: str,
+    ) -> ContextManager[Iterator[str]]:
+        messages = [cast(Message, {"role": "system", "content": system_prompt.strip()})] + messages
 
-        def response_span_generator() -> Iterator[str]:
-            nonlocal response
+        @contextmanager
+        def chat_stream_impl() -> Iterator[str]:
+            completions = self.client.chat.completions.create(
+                model=model,
+                messages=messages,  # type: ignore
+                stream=True,
+            )
             for chunk in completions:
                 delta = chunk.choices[0].delta.content  # type: ignore
                 if delta is None:
@@ -42,6 +42,5 @@ def create_openai_chat_stream(config: Config) -> Generator[Iterator[str], str, N
                 if chunk.choices[0].finish_reason == "stop":  # type: ignore
                     assert chunk.choices[0].delta.content is None  # type: ignore
                     break
-                response += delta
 
-        span_generator = response_span_generator()
+        return chat_stream_impl()

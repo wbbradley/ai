@@ -1,17 +1,18 @@
+import getpass
 import json
 import logging
 import os
+import socket
 import subprocess
 import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Generator, Iterator, List, Optional, TypedDict
+from typing import Iterator, Optional, cast
 
 from ai.colors import colored_output, colorize
 from ai.config import Config
-from ai.providers.anthropic import create_anthropic_chat_stream
-from ai.providers.openai import create_openai_chat_stream
+from ai.document import Document, SessionMetadata
 
 
 class StreamingError(Exception):
@@ -24,14 +25,6 @@ class UnknownProviderError(StreamingError):
 
 def compressed_time() -> str:
     return (datetime.now().isoformat().replace(":", "").replace("-", "").replace("T", "").partition("."))[0]
-
-
-def create_chat_stream(config: Config, provider: str) -> Generator[Iterator[str], str, None]:
-    if provider == "openai":
-        return create_openai_chat_stream(config)
-    if provider == "anthropic":
-        return create_anthropic_chat_stream(config)
-    raise UnknownProviderError(provider)
 
 
 def get_user_input_from_editor() -> Optional[str]:
@@ -68,36 +61,25 @@ def get_user_input_from_editor() -> Optional[str]:
         return None
 
 
-class SessionMetadata(TypedDict):
-    timestamp: float
-    user: str
-    hostname: str
-
-
-class Message(TypedDict):
-    role: str
-    content: str
-
-
-class Report(TypedDict):
-    sessions: List[SessionMetadata] = []
-    system_prompt: str
-    provider: str
-    model: str
-    transcript: List[Message]
-
-
 def run_interactive_stream(
     config: Config,
     chat_filename: Optional[str],
     provider: str,
 ) -> None:
     if chat_filename and Path(chat_filename).exists():
-        report = Report(json.load(open(chat_filename, "r")))
+        document = cast(Document, json.load(open(chat_filename, "r")))
     else:
-        report = Report()
-    coroutine = create_chat_stream(config, provider)
-    model = config.get_provider_model(provider)
+        document = Document(
+            sessions=[
+                SessionMetadata(timestamp=time.time(), user=getpass.getuser(), hostname=socket.gethostname())
+            ],
+            provider=provider,
+            model=config.get_provider_model(provider),
+            transcript=[],
+        )
+    chat_stream = chat_stream_factory(provider)
+    coroutine = generate_document_coroutine(, document)
+    model = document["model"]
     next(coroutine)
     transcript = []
     input_delim = ""
@@ -127,23 +109,22 @@ def run_interactive_stream(
         qa["reply_timestamp"] = time.time()
         transcript.append(qa)
 
-    report = {
+    document = {
         "sessions": [
             {
                 "timestamp": time.time(),
-            }
+                "user": getpass.getuser(),
+                "hostname": socket.gethostname(),
+            },
         ],
-        "system_prompt": config.system_prompt,
         "provider": config.provider,
         "model": config.get_provider_model(config.provider),
-        "query": query,
-        "interactive": True,
         "transcript": transcript,
     }
     report_filename_path = Path(config.report_dir) / report_filename
     with open(report_filename_path, "w") as f:
-        json.dump(report, f, indent=2)
-        print(f"\rWrote report to '{colorize(str(report_filename_path))}'.")
+        json.dump(document, f, indent=2)
+        print(f"\rWrote document to '{colorize(str(report_filename_path))}'.")
     if len(transcript) >= 1:
         if not transcript_filename:
             slug = "".join(
