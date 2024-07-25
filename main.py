@@ -34,7 +34,7 @@ def main() -> None:
             )
         args = parse_args(config)
 
-        if args.filename == "-":
+        if args.filename == "--":
             for line in sys.stdin.readlines():
                 print(f"you said: {line}")
         else:
