@@ -1,4 +1,3 @@
-from contextlib import _GeneratorContextManager
 from typing import Iterator, List, Protocol, cast
 
 from ai.config import Config
@@ -14,7 +13,7 @@ class ChatStream(Protocol):
         temperature: float,
         max_tokens: int,
         system_prompt: str,
-    ) -> _GeneratorContextManager[str]: ...
+    ) -> Iterator[str]: ...
 
 
 def generate_document_coroutine(
@@ -48,15 +47,15 @@ def generate_document_coroutine(
 
         def response_span_generator() -> Iterator[str]:
             nonlocal response
-            with chat_stream.chat_stream(
+
+            for chunk in chat_stream.chat_stream(
                 model=model,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 system_prompt=system_prompt,
                 messages=messages,
-            ) as chunks:
-                for chunk in chunks:
-                    yield chunk
-                    response += chunk
+            ):
+                yield chunk
+                response += chunk
 
         span_generator = response_span_generator()

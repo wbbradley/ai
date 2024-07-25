@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from typing import Iterator, List, cast
 
 from openai import OpenAI
@@ -17,7 +16,6 @@ class OpenAIChatStream(ChatStream):
             raise MissingProviderConfig("openai configuration is missing")
         self.client = OpenAI(api_key=config.openai.api_key)
 
-    @contextmanager
     def chat_stream(
         self,
         model: str,
@@ -33,6 +31,7 @@ class OpenAIChatStream(ChatStream):
             messages=messages,  # type: ignore
             stream=True,
         )
+
         for chunk in completions:
             delta = chunk.choices[0].delta.content  # type: ignore
             if delta is None:

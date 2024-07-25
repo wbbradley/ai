@@ -1,4 +1,3 @@
-from contextlib import contextmanager
 from typing import Iterable, Iterator, List, cast
 
 from anthropic import Anthropic
@@ -16,7 +15,6 @@ class AnthropicChatStream(ChatStream):
         assert config.anthropic
         self.client = Anthropic(api_key=config.anthropic.api_key)
 
-    @contextmanager
     def chat_stream(
         self,
         model: str,

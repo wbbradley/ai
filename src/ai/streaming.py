@@ -13,7 +13,7 @@ from typing import List, Optional, cast
 from ai.chat_stream import ChatStream, generate_document_coroutine
 from ai.colors import colored_output, colorize
 from ai.config import Config
-from ai.document import Document, DocumentMessage, DocumentStream, SessionMetadata, get_document_system_prompt
+from ai.document import Document, DocumentMessage, DocumentStream, SessionMetadata
 from ai.message import Message
 from ai.providers import chat_stream_class_factory
 
@@ -69,23 +69,26 @@ def run_interactive_stream(
     chat_filename: Optional[str],
     provider: str,
 ) -> None:
+    this_session = SessionMetadata(
+        timestamp=time.time(), user=getpass.getuser(), hostname=socket.gethostname()
+    )
     if chat_filename and Path(chat_filename).exists():
         document = cast(Document, json.load(open(chat_filename, "r")))
     else:
         document = Document(
-            sessions=[
-                SessionMetadata(timestamp=time.time(), user=getpass.getuser(), hostname=socket.gethostname())
-            ],
+            sessions=[],
             provider=provider,
             model=config.get_provider_model(provider),
+            system_prompt=config.system_prompt,
             messages=[],
         )
+    document["sessions"].append(this_session)
     chat_stream_cls = chat_stream_class_factory(document["provider"], config)
     chat_stream: ChatStream = chat_stream_cls(config)
     doc_stream = generate_document_coroutine(
         chat_stream,
         model=document["model"],
-        system_prompt=get_document_system_prompt(document),
+        system_prompt=document["system_prompt"],
         messages=[Message(role=x["role"], content=x["content"]) for x in document["messages"]],
         max_tokens=config.max_tokens,
         temperature=config.temperature,
@@ -122,7 +125,8 @@ def run_interactive_stream(
         # Record our new reply message.
         new_messages.append(DocumentMessage(timestamp=time.time(), role="assistant", content=full_reply))
 
-    document = {
+    new_document: Document = {
+        "system_prompt": document["system_prompt"],
         "sessions": [
             {
                 "timestamp": time.time(),
@@ -135,7 +139,7 @@ def run_interactive_stream(
         "messages": document["messages"] + new_messages,
     }
     if len(new_messages) >= 1:
-        save_report(doc_stream, chat_filename, document, config)
+        save_report(doc_stream, chat_filename, new_document, config)
         # with open(transcript_filename, "w") as f:
         #     delim = ""
         #     for qa in transcript:

@@ -23,16 +23,10 @@ class DocumentMessage(Message):
 
 class Document(TypedDict):
     sessions: List[SessionMetadata]
+    system_prompt: str
     provider: str
     model: str
     messages: List[DocumentMessage]
-
-
-def get_document_system_prompt(document: Document) -> str:
-    for message in document["messages"]:
-        if message["role"] == "system":
-            return message["content"]
-    raise NoSystemPromptFound()
 
 
 DocumentStream = Generator[Iterator[str], Message, None]
