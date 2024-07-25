@@ -6,10 +6,11 @@ import shutil
 import socket
 import subprocess
 import tempfile
+import textwrap
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, cast
+from typing import Generator, List, Optional, cast
 
 from ai.chat_stream import ChatStream, generate_document_coroutine
 from ai.colors import colored_output, colorize
@@ -65,6 +66,31 @@ def get_user_input_from_editor() -> Optional[str]:
         return None
 
 
+def word_wrap_printer() -> Generator[None, str, None]:
+    terminal_width = shutil.get_terminal_size().columns
+    buffer = ""
+
+    while True:
+        chunk = yield
+        if chunk is None:
+            break
+
+        lines = chunk.split("\n")
+        for line in lines[:-1]:
+            buffer += line
+            while len(buffer) >= terminal_width:
+                wrapped_line = textwrap.wrap(buffer, width=terminal_width)[0]
+                print(wrapped_line)
+                buffer = buffer[len(wrapped_line) :].lstrip()
+            print(buffer)
+            buffer = ""
+
+        buffer += lines[-1]
+
+    if buffer:
+        print(textwrap.fill(buffer, width=terminal_width))
+
+
 def run_interactive_stream(
     config: Config,
     chat_filename: Optional[str],
@@ -101,6 +127,8 @@ def run_interactive_stream(
     new_messages: List[DocumentMessage] = []
     input_delim = ""
     print(f"[ai] you are chatting with {colorize(provider)}'s {colorize(model)} model.")
+    printer = word_wrap_printer()
+    next(printer)
     while True:
         query = None
         try:
@@ -123,7 +151,7 @@ def run_interactive_stream(
         with colored_output(r=200, g=150, b=100):
             for span in spans:
                 full_reply += span
-                print(span, end="")
+                printer.send(span)
 
         # Record our new reply message.
         new_messages.append(DocumentMessage(timestamp=time.time(), role="assistant", content=full_reply))
