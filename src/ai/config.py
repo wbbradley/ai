@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import sys
@@ -55,7 +56,14 @@ class AnthropicConfig(HasAPIKey):
     model: str
 
 
+def translate_log_level(log_level: str) -> int:
+    return cast(int, getattr(logging, log_level.upper()))
+
+
 class Config(BaseModel):
+    log_filename: Optional[str] = "~/ai.log"
+    log_level: str = "warn"
+    log_level_int: int = logging.WARN
     transcript_dir: str
     report_dir: str
     system_prompt: str = ""
@@ -72,9 +80,15 @@ class Config(BaseModel):
         return cast(str, getattr(provider_config, "model"))
 
     def model_post_init(self, __context: Any) -> None:
+        self.log_level_int = translate_log_level(self.log_level)
         # Allow for usage '~' in config
         self.transcript_dir = os.path.expanduser(self.transcript_dir)
         self.report_dir = os.path.expanduser(self.report_dir)
+
+        if self.log_filename is not None:
+            self.log_filename = os.path.expanduser(self.log_filename)
+            os.makedirs(os.path.dirname(self.log_filename), exist_ok=True)
+
         # Ensure the config directories exist.
         os.makedirs(self.report_dir, exist_ok=True)
         os.makedirs(self.transcript_dir, exist_ok=True)

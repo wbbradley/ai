@@ -1,5 +1,6 @@
 import getpass
 import json
+import logging
 import os
 import shutil
 import socket
@@ -72,6 +73,7 @@ def run_interactive_stream(
     this_session = SessionMetadata(
         timestamp=time.time(), user=getpass.getuser(), hostname=socket.gethostname()
     )
+
     if chat_filename and Path(chat_filename).exists():
         document = cast(Document, json.load(open(chat_filename, "r")))
     else:
@@ -85,6 +87,7 @@ def run_interactive_stream(
     document["sessions"].append(this_session)
     chat_stream_cls = chat_stream_class_factory(document["provider"], config)
     chat_stream: ChatStream = chat_stream_cls(config)
+    logging.debug(document)
     doc_stream = generate_document_coroutine(
         chat_stream,
         model=document["model"],
@@ -168,7 +171,7 @@ def save_report(
                 )
             )
         )
-        chat_filename = str(Path(config.report_dir or ".") / f"{slug}.md")
+        chat_filename = str(Path(config.report_dir or ".") / f"{slug}.json")
     else:
         print(f"Backing up {chat_filename} as {chat_filename}.bak...")
         shutil.copy(chat_filename, chat_filename + ".bak")

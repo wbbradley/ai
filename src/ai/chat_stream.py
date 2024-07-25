@@ -1,3 +1,4 @@
+import logging
 from typing import Iterator, List, Protocol, cast
 
 from ai.config import Config
@@ -47,6 +48,17 @@ def generate_document_coroutine(
 
         def response_span_generator() -> Iterator[str]:
             nonlocal response
+
+            logging.debug(
+                dict(
+                    status="sending streaming request",
+                    model=model,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    system_prompt=system_prompt,
+                    messages=messages,
+                )
+            )
 
             for chunk in chat_stream.chat_stream(
                 model=model,
