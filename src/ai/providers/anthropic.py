@@ -1,10 +1,12 @@
-from typing import Iterator, List, cast
+from contextlib import contextmanager
+from typing import Iterable, Iterator, List, cast
 
 from anthropic import Anthropic
 from anthropic.types import MessageParam
 
+from ai.chat_stream import ChatStream
 from ai.config import Config
-from ai.document import Document, DocumentStream
+from ai.document import Message
 
 
 class AnthropicChatStream(ChatStream):
@@ -14,6 +16,7 @@ class AnthropicChatStream(ChatStream):
         assert config.anthropic
         self.client = Anthropic(api_key=config.anthropic.api_key)
 
+    @contextmanager
     def chat_stream(
         self,
         model: str,
@@ -21,11 +24,13 @@ class AnthropicChatStream(ChatStream):
         temperature: float,
         max_tokens: int,
         system_prompt: str,
-    ) -> ContextManager[Iterator[str]]: ...
-        with client.messages.stream(
+    ) -> Iterator[str]:
+        with self.client.messages.stream(
             model=model,
-            temperature=config.temperature,
-            max_tokens=config.max_tokens,
-            system=config.system_prompt.strip(),
-            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            system=system_prompt.strip(),
+            messages=cast(Iterable[MessageParam], messages),
         ) as stream:
+            for chunk in stream.text_stream:
+                yield chunk

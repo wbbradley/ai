@@ -1,9 +1,12 @@
-from typing import ContextManager, Iterator, List, Protocol, cast
+from contextlib import _GeneratorContextManager
+from typing import Iterator, List, Protocol, cast
 
+from ai.config import Config
 from ai.document import DocumentStream, Message
 
 
 class ChatStream(Protocol):
+    def __init__(self, config: Config) -> None: ...
     def chat_stream(
         self,
         model: str,
@@ -11,7 +14,7 @@ class ChatStream(Protocol):
         temperature: float,
         max_tokens: int,
         system_prompt: str,
-    ) -> ContextManager[Iterator[str]]: ...
+    ) -> _GeneratorContextManager[str]: ...
 
 
 def generate_document_coroutine(

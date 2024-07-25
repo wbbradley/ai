@@ -22,6 +22,7 @@ line-length = 110
 "pd" = "import pandas as pd"
 "pprint" = "from pprint import pprint"
 "dataclass" = "from dataclasses import dataclass"
+"contextmanager" = "from contextlib import contextmanager"
 
 [tool.autoimport]
 disable_move_to_top = true
