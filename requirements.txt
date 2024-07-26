@@ -3,4 +3,6 @@ isort
 mypy
 openai
 ruff
+ipython
+wat-inspector
 anthropic
