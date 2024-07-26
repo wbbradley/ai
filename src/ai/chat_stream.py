@@ -48,7 +48,6 @@ def generate_document_coroutine(
 
         def response_span_generator() -> Iterator[str]:
             nonlocal response
-
             logging.debug(
                 dict(
                     status="sending streaming request",

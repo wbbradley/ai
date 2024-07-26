@@ -1,22 +1,31 @@
 import argparse
 import glob
+import json
 import logging
 import os
 import sys
-from pprint import pprint
+import time
 from typing import Optional
 
 from ai.colors import colorize
 from ai.config import Config, fetch_config
 from ai.embedded import parse_embedded_buffer
 from ai.output import set_quiet_mode
-from ai.streaming import run_interactive_stream
+from ai.streaming import run_interactive_stream, stream_document_response
 
 
 def parse_args(config: Config) -> argparse.Namespace:
     parser = argparse.ArgumentParser("ai")
     parser.add_argument(
         "-p", "--provider", required=False, default=config.provider, help="Which provider to use"
+    )
+    parser.add_argument(
+        "-n",
+        "--dry-run",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Do a dry run.",
     )
     parser.add_argument(
         "-e",
@@ -52,6 +61,7 @@ def most_recent_json_file(directory: str) -> Optional[str]:
 def main() -> None:
     if "--embedded" in sys.argv:
         set_quiet_mode()
+
     try:
         config = fetch_config()
         if config.log_filename:
@@ -63,9 +73,12 @@ def main() -> None:
         args = parse_args(config)
 
         if args.embedded:
-            print(os.getcwd())
+            logging.info({"mode": "embedded", "filename": args.filename, "timestamp": time.time()})
             document = parse_embedded_buffer(config, open(args.filename, "r") if args.filename else sys.stdin)
-            pprint(document)
+            if args.dry_run:
+                print(json.dumps({"messages": document.messages}, indent=2))
+                return
+            stream_document_response(config, document)
             return
 
         if args.filename == "-":
@@ -76,6 +89,9 @@ def main() -> None:
         else:
             filename = args.filename
 
+        logging.info(
+            {"mode": "interactive", "filename": filename, "provider": args.provider, "timestamp": time.time()}
+        )
         run_interactive_stream(config, filename, args.provider)
     except RuntimeError as e:
         sys.exit(f"ai: {e}")

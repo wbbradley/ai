@@ -74,7 +74,8 @@ class Config(BaseModel):
     openai: Optional[OpenAIConfig] = None
     anthropic: Optional[AnthropicConfig] = None
 
-    def get_provider_model(self, provider: str) -> str:
+    def get_provider_model(self, provider_override: Optional[str] = None) -> str:
+        provider: str = provider_override or self.provider
         provider_config = getattr(self, provider, None)
         if not provider_config:
             raise InvalidProviderModelError(provider)

@@ -1,16 +1,47 @@
-Hey what does this become?
-Hey what does this become?
-Hey what does this become?
-Hey what does this become?
+Walk me through the process of writing a vector store database. I'd like to understand
 
->>> user
-What do you think about giraffes?
-
-def giraffes():
-    return "have long necks"
+1. What are the common access patterns I should support?
+2. What are the common implementations?
 
 >>> assistant
-They are my favorite animal, after penguins.
+
+1. Common Access Patterns:
+   - **Insertion**: Adding vectors into the database.
+   - **Nearest Neighbor Search**: Finding vectors closest to a given query vector.
+   - **Range Queries**: Finding vectors within a specific distance range.
+   - **Deletion**: Removing vectors from the database.
+   - **Update**: Modifying existing vectors.
+   - **Batch Operations**: Handling multiple vectors in a single operation.
+
+2. Common Implementations:
+   - **Flat File Storage**: Storing vectors in raw files with indexing for fast access.
+   - **In-Memory Databases**: Using data structures such as KD-Trees, Ball Trees, or VP Trees to
+     store vectors in memory for fast read and write operations.
+   - **Approximate Nearest Neighbor (ANN) Algorithms**: Implementations like FAISS (Facebook AI
+     Similarity Search), Annoy (Approximate Nearest Neighbors Oh Yeah), or HNSW (Hierarchical
+     Navigable Small World graphs).
+   - **Database Extensions**: Extending traditional databases (SQL/NoSQL) with vector search
+     capability, for example, using PostgreSQL with the PostGIS extension or MongoDB with vector
+     search support.
+   - **Custom Implementations**: Building specialized data structures to organize and retrieve
+     vector data efficiently, tailored to specific use cases.
 
 >>> user
-What about lions?
+
+Let's say I'd like to insert embeddings from an embedding model into the db.
+
+Are there off-the-shelf embedding libraries for processing text that are very good and run
+locally?
+
+>>> assistant
+
+Yes, there are several off-the-shelf embedding libraries for processing text that are very good and can run locally:
+
+1. **spaCy**: Contains pre-trained word vectors and supports various models.
+2. **Gensim**: Offers Word2Vec, FastText, and other embedding models.
+3. **Sentence-Transformers**: Provides BERT-based sentence embeddings.
+4. **Transformers (by Hugging Face)**: Supports a wide range of transformer models for generating text embeddings.
+5. **FastText**: A library by Facebook for efficient text classification and representation learning.
+6. **Flair**: A simple NLP library for state-of-the-art natural language processing tasks, including embeddings.
+
+>>> user

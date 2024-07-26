@@ -15,7 +15,9 @@ from ai.chat_stream import ChatStream, generate_document_coroutine
 from ai.colors import colored_output, colorize
 from ai.config import Config
 from ai.document import Document, DocumentMessage, DocumentStream, SessionMetadata
+from ai.embedded import EmbeddedDocument
 from ai.message import Message
+from ai.output import note
 from ai.providers import chat_stream_class_factory
 
 
@@ -44,10 +46,10 @@ def get_user_input_from_editor() -> Optional[str]:
             try:
                 subprocess.run([editor, temp_filename], check=True)
             except subprocess.CalledProcessError:
-                print("Error: Failed to open the editor.")
+                logging.error("Failed to open the editor.")
                 return None
             except FileNotFoundError:
-                print(f"Error: Editor '{editor}' not found.")
+                logging.error(f"Editor '{editor}' not found.")
                 return None
 
             # Read the contents of the temporary file
@@ -55,14 +57,29 @@ def get_user_input_from_editor() -> Optional[str]:
                 with open(temp_filename, "r") as file:
                     content = file.read()
             except IOError as e:
-                print(f"Error reading the temporary file: {e}")
+                logging.error(f"Error reading the temporary file: {e}")
                 return None
 
             return content.strip()
 
-    except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+    except Exception:
+        logging.exception("[get_user_input_from_editor] An unexpected error occurred")
         return None
+
+
+def stream_document_response(config: Config, document: EmbeddedDocument) -> None:
+    chat_stream_cls = chat_stream_class_factory(config.provider, config)
+    chat_stream: ChatStream = chat_stream_cls(config)
+    print("\n>>> assistant\n")
+    for chunk in chat_stream.chat_stream(
+        model=config.get_provider_model(),
+        temperature=config.temperature,
+        max_tokens=config.max_tokens,
+        system_prompt=config.system_prompt,
+        messages=document.messages,
+    ):
+        print(chunk, end="")
+    print("\n\n>>> user")
 
 
 def run_interactive_stream(
@@ -75,7 +92,8 @@ def run_interactive_stream(
     )
 
     if chat_filename and Path(chat_filename).exists():
-        document = cast(Document, json.load(open(chat_filename, "r")))
+        with open(chat_filename, "r") as f:
+            document = cast(Document, json.load(f))
     else:
         document = Document(
             sessions=[],
@@ -143,14 +161,6 @@ def run_interactive_stream(
     }
     if len(new_messages) >= 1:
         save_report(doc_stream, chat_filename, new_document, config)
-        # with open(transcript_filename, "w") as f:
-        #     delim = ""
-        #     for qa in transcript:
-        #         f.write(f"{delim}## user >>\n\n{qa['query']}\n\n")
-        #         f.write(f"## {model} >>\n\n{qa['reply']}")
-        #         delim = "\n\n"
-        #     f.write("\n")
-        # print(f"\rWrote transcript to '{colorize(str(transcript_filename))}'. Goodbye.")
 
 
 def save_report(
@@ -173,7 +183,7 @@ def save_report(
         )
         chat_filename = str(Path(config.report_dir or ".") / f"{slug}.json")
     else:
-        print(f"Backing up {chat_filename} as {chat_filename}.bak...")
+        logging.info(f"Backing up {chat_filename} as {chat_filename}.bak...")
         shutil.copy(chat_filename, chat_filename + ".bak")
 
     assert chat_filename is not None

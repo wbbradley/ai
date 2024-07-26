@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import IO, List, Optional
+from typing import IO, List, Optional, cast
 
 from ai.config import Config
 from ai.message import Message, Role
@@ -7,7 +7,6 @@ from ai.message import Message, Role
 
 @dataclass
 class EmbeddedDocument:
-    system_prompt: str
     messages: List[Message]
 
 
@@ -28,9 +27,9 @@ def parse_embedded_buffer(config: Config, file: IO) -> EmbeddedDocument:
             break
         if line.startswith(">>> "):
             messages.append(Message(role=role, content=content.rstrip()))
-            role = line[4:].strip()
+            role = cast(Role, line[4:].strip())
             content = ""
             continue
         content += line
 
-    return EmbeddedDocument(system_prompt=config.system_prompt, messages=messages)
+    return EmbeddedDocument(messages=messages)
