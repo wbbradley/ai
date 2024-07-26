@@ -1,0 +1,16 @@
+Hey what does this become?
+Hey what does this become?
+Hey what does this become?
+Hey what does this become?
+
+>>> user
+What do you think about giraffes?
+
+def giraffes():
+    return "have long necks"
+
+>>> assistant
+They are my favorite animal, after penguins.
+
+>>> user
+What about lions?

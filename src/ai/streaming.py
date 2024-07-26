@@ -100,7 +100,7 @@ def run_interactive_stream(
     next(doc_stream)
     new_messages: List[DocumentMessage] = []
     input_delim = ""
-    print(f"[ai] you are chatting with {colorize(provider)}'s {colorize(model)} model.")
+    note(f"[ai] you are chatting with {colorize(provider)}'s {colorize(model)} model.")
     while True:
         query = None
         try:

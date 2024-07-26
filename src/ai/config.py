@@ -10,6 +10,7 @@ from typing import Any, Optional, cast
 from pydantic import BaseModel
 
 from ai.colors import erase_line
+from ai.output import note
 
 
 class AIConfigError(Exception):
@@ -39,7 +40,7 @@ class HasAPIKey(BaseModel):
     def model_post_init(self, __context: Any) -> None:
         if self.api_key_cmd is not None:
             try:
-                print(f"\rrunning api_key_cmd '{self.api_key_cmd}'...", end="")
+                note(f"\rrunning api_key_cmd '{self.api_key_cmd}'...", end="")
                 self.api_key = subprocess.check_output(self.api_key_cmd, shell=True).strip().decode("utf-8")
                 # Erase line.
                 erase_line()

@@ -55,4 +55,8 @@ def reset_tty() -> None:
 
 
 def erase_line() -> None:
+    from ai.output import get_quiet_mode
+
+    if get_quiet_mode():
+        return None
     print("\r\33[2K\r", end="")
