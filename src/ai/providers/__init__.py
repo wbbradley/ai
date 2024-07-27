@@ -17,11 +17,13 @@ class MissingProviderConfig(ProviderError):
 
 
 def chat_stream_class_factory(provider: str, config: Config) -> Callable[[Config], ChatStream]:
-    from ai.providers.anthropic import AnthropicChatStream
-    from ai.providers.openai import OpenAIChatStream
-
     if provider == "openai":
+        from ai.providers.openai import OpenAIChatStream
+
         return OpenAIChatStream
     if provider == "anthropic":
+        from ai.providers.anthropic import AnthropicChatStream
+
         return AnthropicChatStream
+
     raise UnknownProviderError(provider)

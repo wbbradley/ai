@@ -36,6 +36,14 @@ def parse_args(config: Config) -> argparse.Namespace:
         help="Process a conversation from stdin, and writing a new response to stdout.",
     )
     parser.add_argument(
+        "-1",
+        "--one-shot",
+        required=False,
+        action="store_true",
+        default=False,
+        help="Get a single response (do not augment with > user style annotations.)",
+    )
+    parser.add_argument(
         "filename",
         nargs="?",
         default=None,
@@ -70,6 +78,7 @@ def main() -> None:
                 level=config.log_level_int,
                 filemode="a",
             )
+        logging.info(f"ai invoked with {sys.argv}")
         args = parse_args(config)
 
         if args.embedded:
@@ -78,7 +87,7 @@ def main() -> None:
             if args.dry_run:
                 print(json.dumps({"messages": document.messages}, indent=2))
                 return
-            stream_document_response(config, document)
+            stream_document_response(config, document, args.one_shot)
             return
 
         if args.filename == "-":
@@ -93,7 +102,8 @@ def main() -> None:
             {"mode": "interactive", "filename": filename, "provider": args.provider, "timestamp": time.time()}
         )
         run_interactive_stream(config, filename, args.provider)
-    except RuntimeError as e:
+    except Exception as e:
+        logging.exception("crash!")
         sys.exit(f"ai: {e}")
 
 

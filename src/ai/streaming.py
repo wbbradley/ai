@@ -67,10 +67,11 @@ def get_user_input_from_editor() -> Optional[str]:
         return None
 
 
-def stream_document_response(config: Config, document: EmbeddedDocument) -> None:
+def stream_document_response(config: Config, document: EmbeddedDocument, one_shot: bool) -> None:
     chat_stream_cls = chat_stream_class_factory(config.provider, config)
     chat_stream: ChatStream = chat_stream_cls(config)
-    print("\n>>> assistant\n")
+    if not one_shot:
+        print("\n> assistant\n")
     for chunk in chat_stream.chat_stream(
         model=config.get_provider_model(),
         temperature=config.temperature,
@@ -79,7 +80,10 @@ def stream_document_response(config: Config, document: EmbeddedDocument) -> None
         messages=document.messages,
     ):
         print(chunk, end="")
-    print("\n\n>>> user")
+    if one_shot:
+        print()
+    else:
+        print("\n\n> user\n\n")
 
 
 def run_interactive_stream(

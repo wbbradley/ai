@@ -20,15 +20,23 @@ def parse_embedded_buffer(config: Config, file: IO) -> EmbeddedDocument:
     role: Role = "user"
     content: str = ""
 
+    import re
+
+    pattern: str = r"^> (\w+)\s*(.*)$"
     while True:
         line = next(line_iter, None)
         if line is None:
             messages.append(Message(role=role, content=content.rstrip()))
             break
-        if line.startswith(">>> "):
-            messages.append(Message(role=role, content=content.rstrip()))
-            role = cast(Role, line[4:].strip())
-            content = ""
+        match = re.search(pattern, line)
+        if match and match[1] in ("user", "assistant"):
+            if content:
+                messages.append(Message(role=role, content=content.rstrip()))
+            role = cast(Role, match[1])
+            if match[2]:
+                content = match[2].strip() + "\n"
+            else:
+                content = ""
             continue
         content += line
 
