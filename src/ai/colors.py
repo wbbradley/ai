@@ -40,6 +40,14 @@ def hash_to_color(input_string: str, saturation: float = 0.8, value: float = 0.8
     return rgb_255
 
 
+def color_code(r: int, g: int, b: int, bold: bool = False) -> str:
+    return f"\001\033[{1 if bold else 0}m\002" + f"\001\033[38;2;{r};{g};{b}m\002"
+
+
+def bold_code(text: str, r: int, g: int, b: int) -> str:
+    return "\001\033[1m\002"
+
+
 def colorize(text: str, r: Optional[int] = None, g: Optional[int] = None, b: Optional[int] = None) -> str:
     if r is None or g is None or b is None:
         r, g, b = hash_to_color(text)

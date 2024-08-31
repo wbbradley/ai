@@ -4,5 +4,6 @@ mypy
 openai
 ruff
 ipython
+ipdb
 wat-inspector
 anthropic
