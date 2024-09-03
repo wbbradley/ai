@@ -101,7 +101,7 @@ def main() -> None:
         logging.info(
             {"mode": "interactive", "filename": filename, "provider": args.provider, "timestamp": time.time()}
         )
-        run_interactive_stream(config, filename, args.provider)
+        run_interactive_stream(config, filename, args.provider, config.format_as_markdown)
     except Exception as e:
         logging.exception("crash!")
         sys.exit(f"ai: {e}")

@@ -91,8 +91,9 @@ def run_interactive_stream(
     config: Config,
     chat_filename: Optional[str],
     provider: str,
+    format_as_markdown: bool,
 ) -> None:
-    format_for_screen = markdown_to_ansi if config.format_as_markdown else lambda text, color: text
+    format_for_screen = markdown_to_ansi if format_as_markdown else lambda text, color: text
     this_session = SessionMetadata(
         timestamp=time.time(), user=getpass.getuser(), hostname=socket.gethostname()
     )
