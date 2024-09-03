@@ -3,6 +3,19 @@ import hashlib
 from contextlib import contextmanager
 from typing import Generator, Optional, Tuple
 
+from pydantic import BaseModel  # noqa: E0611
+
+
+class Color(BaseModel):
+    r: int
+    g: int
+    b: int
+
+
+class ColorScheme(BaseModel):
+    user: Color = Color(r=134, g=160, b=125)
+    assistant: Color = Color(r=160, g=160, b=150)
+
 
 @contextmanager
 def colored_output(r: int, g: int, b: int) -> Generator[None, None, None]:

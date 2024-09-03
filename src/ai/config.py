@@ -9,7 +9,7 @@ from typing import Any, Optional, cast
 
 from pydantic import BaseModel
 
-from ai.colors import erase_line
+from ai.colors import ColorScheme, erase_line
 from ai.output import note
 
 
@@ -62,6 +62,7 @@ def translate_log_level(log_level: str) -> int:
 
 
 class Config(BaseModel):
+    colorscheme: ColorScheme = ColorScheme()
     log_filename: Optional[str] = "~/ai.log"
     log_level: str = "warn"
     log_level_int: int = logging.WARN
@@ -73,6 +74,7 @@ class Config(BaseModel):
     max_tokens: int = 1024
     openai: Optional[OpenAIConfig] = None
     anthropic: Optional[AnthropicConfig] = None
+    format_as_markdown: bool = True
 
     def get_provider_model(self, provider_override: Optional[str] = None) -> str:
         provider: str = provider_override or self.provider

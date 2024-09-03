@@ -2,7 +2,6 @@ import getpass
 import json
 import logging
 import os
-import re
 import shutil
 import socket
 import subprocess
@@ -10,33 +9,17 @@ import tempfile
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, TypedDict, cast
+from typing import List, Optional, cast
 
 from ai.chat_stream import ChatStream, generate_document_coroutine
-from ai.colors import color_code, colorize
+from ai.colors import colorize
 from ai.config import Config
 from ai.document import Document, DocumentMessage, DocumentStream, SessionMetadata
 from ai.embedded import EmbeddedDocument
+from ai.markdown import markdown_to_ansi
 from ai.message import Message
 from ai.output import note
 from ai.providers import chat_stream_class_factory
-
-
-class Color(TypedDict):
-    r: int
-    g: int
-    b: int
-
-
-USER_COLORS = Color(r=250, g=150, b=150)
-ASSISTANT_COLORS = Color(r=200, g=150, b=100)
-
-
-def get_color_scheme(role: str) -> Color:
-    return {
-        "user": USER_COLORS,
-        "assistant": ASSISTANT_COLORS,
-    }[role]
 
 
 class StreamingError(Exception):
@@ -104,101 +87,12 @@ def stream_document_response(config: Config, document: EmbeddedDocument, one_sho
         print("\n\n> user\n\n")
 
 
-def markdown_to_ansi(
-    text: str,
-    r: int,
-    g: int,
-    b: int,
-) -> str:
-    output = color_code(r, g, b)
-    state = "newline"
-    star2_text = ""
-    header_text = ""
-    col = 0
-    for ch in text:
-        if state == "newline":
-            if ch == "#":
-                header_text += ch
-                continue
-            elif len(header_text) != 0:
-                if ch == "\n":
-                    output += color_code(255 - ((255 - int(r)) // 2), g, b, bold=True)
-                    output += header_text
-                    output += color_code(r, g, b, bold=False)
-                    output += "\n"
-                    header_text = ""
-                else:
-                    header_text += ch
-                continue
-            else:
-                state = "normal"
-
-        assert header_text == ""
-        assert state != "newline"
-        match state:
-            case "normal":
-                if ch == "*":
-                    state = "1star"
-                else:
-                    output += ch
-                    col += 1
-            case "1star":
-                if ch == "*":
-                    state = "2star"
-                    star2_text = ""
-                else:
-                    output += "*"
-                    state = "normal"
-            case "2star":
-                if ch == "*":
-                    state = "normal"
-                    output += "**"
-                else:
-                    state = "eating-2star"
-                    star2_text = ch
-            case "eating-2star":
-                if ch == "*":
-                    state = "eating-2star-1"
-                elif ch == "\n":
-                    # Not in a bold run.
-                    output += "**" + star2_text + ch
-                    state = "normal"
-                else:
-                    star2_text += ch
-            case "eating-2star-1":
-                if ch == "*":
-                    state = "normal"
-                    output += color_code(r, g, b, bold=True)
-                    output += star2_text
-                    output += color_code(r, g, b, bold=False)
-                elif ch == "\n":
-                    output += "**" + star2_text + "*" + ch
-                    state = "normal"
-                else:
-                    star2_text += ch
-    match state:
-        case "1star":
-            output += "*"
-        case "2star":
-            output += "**"
-        case "eating-2star":
-            output += "**" + star2_text
-        case "eating-2star-1":
-            output += "**" + star2_text + "*"
-
-    output += "\001\033[0m\002"
-    return output
-
-
-def bold_ansi(text: str) -> str:
-    return re.sub(r"\*\*(.*?)\*\*", lambda match: f"\001\033[1m\002{match.group(1)}\001\033[0m\002", text)
-
-
 def run_interactive_stream(
     config: Config,
     chat_filename: Optional[str],
     provider: str,
 ) -> None:
+    format_for_screen = markdown_to_ansi if config.format_as_markdown else lambda text, color: text
     this_session = SessionMetadata(
         timestamp=time.time(), user=getpass.getuser(), hostname=socket.gethostname()
     )
@@ -243,12 +137,13 @@ def run_interactive_stream(
             query = get_user_input_from_editor()
             if not query:
                 continue
-            print(markdown_to_ansi(query, **get_color_scheme("user")))
+            print(format_for_screen(query, config.colorscheme.user))
         elif query == "":
+            # Show a replay of the conversation so far.
             replay_delim = ""
             for message in document["messages"]:
                 print(replay_delim, end="")
-                print(markdown_to_ansi(message["content"], **get_color_scheme(message["role"])))
+                print(format_for_screen(message["content"], getattr(config.colorscheme, message["role"])))
                 replay_delim = "\n"
             input_delim = ""
             continue
@@ -260,7 +155,7 @@ def run_interactive_stream(
         full_reply = ""
         spans = doc_stream.send(Message(content=query, role="user"))
         full_reply = "".join(spans)
-        print(markdown_to_ansi(full_reply, **get_color_scheme("assistant")))
+        print(format_for_screen(full_reply, config.colorscheme.assistant))
 
         # Record our new reply message.
         new_messages.append(DocumentMessage(timestamp=time.time(), role="assistant", content=full_reply))
