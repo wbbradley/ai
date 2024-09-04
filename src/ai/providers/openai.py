@@ -42,13 +42,15 @@ class OpenAIChatStream(ChatStream):
                 break
 
 
-def complete_text(client: OpenAI, prompt: str) -> str | None:
+def complete_text(config: Config, client: OpenAI, prompt: str) -> str | None:
     completion = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=config.get_provider_model(provider_override="openai"),
+        temperature=config.temperature,
+        max_tokens=config.max_tokens,
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant. Your users are children between the ages of five and six.",
+                "content": config.system_prompt,
             },
             {"role": "user", "content": prompt},
         ],

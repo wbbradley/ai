@@ -45,7 +45,7 @@ class HasAPIKey(BaseModel):
                 # Erase line.
                 erase_line()
             except subprocess.CalledProcessError as e:
-                raise InvalidConfigurationError("openai.api_key_cmd returned an error.") from e
+                raise InvalidConfigurationError(f"api_key_cmd '{self.api_key_cmd}' returned an error.") from e
             self.api_key_cmd = None
 
 
