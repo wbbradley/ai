@@ -15,4 +15,4 @@ def get_quiet_mode() -> bool:
 def note(text: str, end: str = "\n") -> None:
     if quiet_mode:
         return
-    print(f"ai: {colorize("note")}: {text}", end=end)
+    print(f'ai: {colorize("note")}: {text}', end=end)
