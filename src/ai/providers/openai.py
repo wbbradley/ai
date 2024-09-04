@@ -40,3 +40,17 @@ class OpenAIChatStream(ChatStream):
             if chunk.choices[0].finish_reason == "stop":  # type: ignore
                 assert chunk.choices[0].delta.content is None  # type: ignore
                 break
+
+
+def complete_text(client: OpenAI, prompt: str) -> str | None:
+    completion = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are a helpful assistant. Your users are children between the ages of five and six.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+    )
+    return completion.choices[0].message.content

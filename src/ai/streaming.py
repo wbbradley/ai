@@ -95,7 +95,9 @@ def run_interactive_stream(
 ) -> None:
     format_for_screen = markdown_to_ansi if format_as_markdown else lambda text, color: text
     this_session = SessionMetadata(
-        timestamp=time.time(), user=getpass.getuser(), hostname=socket.gethostname()
+        timestamp=time.time(),
+        user=getpass.getuser(),
+        hostname=socket.gethostname(),
     )
 
     if chat_filename and Path(chat_filename).exists():
