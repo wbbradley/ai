@@ -42,17 +42,20 @@ class OpenAIChatStream(ChatStream):
                 break
 
 
-def complete_text(config: Config, client: OpenAI, prompt: str) -> str | None:
+def complete_text(config: Config, client: OpenAI, prompt: str | List[Message]) -> str | None:
+    system_prompt_message: Message = Message(role="system", content=config.system_prompt)  # type: ignore
+    messages: List[Message] = (
+        [
+            system_prompt_message,
+            {"role": "user", "content": prompt},
+        ]
+        if isinstance(prompt, str)
+        else [system_prompt_message] + prompt
+    )
     completion = client.chat.completions.create(
         model=config.get_provider_model(provider_override="openai"),
         temperature=config.temperature,
         max_tokens=config.max_tokens,
-        messages=[
-            {
-                "role": "system",
-                "content": config.system_prompt,
-            },
-            {"role": "user", "content": prompt},
-        ],
+        messages=messages,  # type: ignore
     )
     return completion.choices[0].message.content
