@@ -16,7 +16,6 @@ class ChatStream(Protocol):
         system_prompt: str,
     ) -> Iterator[str]: ...
 
-
 def generate_document_coroutine(
     chat_stream: ChatStream,
     model: str,
@@ -31,7 +30,7 @@ def generate_document_coroutine(
     """
     i = 0
     span_generator = None
-    response = None
+    response = ""
     system_prompt = system_prompt.strip()
     while True:
         user_message = yield cast(Iterator[str], span_generator)

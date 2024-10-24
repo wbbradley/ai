@@ -140,7 +140,6 @@ def run_interactive_stream(
             query = get_user_input_from_editor()
             if not query:
                 continue
-            print(format_for_screen(query, config.colorscheme.user))
         elif query == "":
             # Show a replay of the conversation so far.
             replay_delim = ""
@@ -150,6 +149,7 @@ def run_interactive_stream(
                 replay_delim = "\n"
             input_delim = ""
             continue
+        print(format_for_screen(query, config.colorscheme.user))
 
         # Record our new user message.
         new_messages.append(DocumentMessage(timestamp=time.time(), role="user", content=query))
