@@ -54,7 +54,7 @@ def parse_args(config: Config) -> argparse.Namespace:
     if args.filename is not None and (
         not args.filename.endswith(".json") and not args.filename == "-" and not args.filename.endswith(".ai")
     ):
-        raise RuntimeError(f"filename must end with .json [filename={args.filename}]")
+        raise RuntimeError(f"filename must end with .json or .ai [filename={args.filename}]")
     return args
 
 
