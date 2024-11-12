@@ -11,7 +11,7 @@ from ai.providers import MissingProviderConfig
 class OpenAIChatStream(ChatStream):
     client: OpenAI
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config):
         if not config.openai:
             raise MissingProviderConfig("openai configuration is missing")
         self.client = OpenAI(api_key=config.openai.api_key)

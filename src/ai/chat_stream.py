@@ -16,6 +16,7 @@ class ChatStream(Protocol):
         system_prompt: str,
     ) -> Iterator[str]: ...
 
+
 def generate_document_coroutine(
     chat_stream: ChatStream,
     model: str,
